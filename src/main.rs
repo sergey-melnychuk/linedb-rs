@@ -142,23 +142,18 @@ async fn lookup(idx: &mut File, dat: &mut File, line: &str, socket: &mut TcpStre
     socket.write_all(b"OK\n").await?;
     if len > PAGE_SIZE {
         let mut buf = BytesMut::with_capacity(PAGE_SIZE);
-        let mut togo = len;
-        while togo > 0 {
+        let mut remaining = len;
+        while remaining > 0 {
             let n = dat.read_buf(&mut buf).await?;
             if n == 0 {
                 break;
             }
 
-            let m = std::cmp::min(PAGE_SIZE, togo);
-            socket.write(&buf[..m]).await?;
-            debug!("response chunk written, togo={} len={}", togo, len);
+            socket.write(&buf[..n]).await?;
+            debug!("response chunk written, togo={} len={}", remaining, len);
             buf.clear();
 
-            if n > togo {
-                togo = 0;
-            } else {
-                togo -= n;
-            }
+            remaining -= n;
         }
     } else {
         let mut buf = BytesMut::with_capacity(len);
